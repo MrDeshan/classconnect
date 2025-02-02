@@ -2,16 +2,30 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Video, Mic, Share, MessageSquare, Users, X, Send, PhoneOff, Settings, UserPlus } from "lucide-react";
+import { 
+  Video, 
+  Mic, 
+  Share, 
+  MessageSquare, 
+  Users, 
+  X, 
+  Send, 
+  PhoneOff, 
+  Settings, 
+  UserPlus,
+  BookOpen 
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import Quiz from "./Quiz";
 
 const VideoCall = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<{ text: string; sender: string; timestamp: string }[]>([]);
   const [participants, setParticipants] = useState([
@@ -139,6 +153,9 @@ const VideoCall = () => {
           </Card>
         )}
 
+        {/* Quiz Component */}
+        {isQuizOpen && <Quiz onClose={() => setIsQuizOpen(false)} />}
+
         {/* Controls */}
         <Card className="glass-card p-4 fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-gray-900/90 border-gray-700">
           <Button
@@ -168,6 +185,13 @@ const VideoCall = () => {
             onClick={() => setIsChatOpen(!isChatOpen)}
           >
             <MessageSquare className="w-6 h-6" />
+          </Button>
+          <Button
+            variant="outline"
+            className={`rounded-full p-4 ${isQuizOpen ? "bg-primary text-white" : ""}`}
+            onClick={() => setIsQuizOpen(!isQuizOpen)}
+          >
+            <BookOpen className="w-6 h-6" />
           </Button>
           <Button 
             variant="destructive" 
