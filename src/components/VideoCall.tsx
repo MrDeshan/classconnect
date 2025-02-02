@@ -1,23 +1,11 @@
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Video, 
-  Mic, 
-  Share, 
-  MessageSquare, 
-  Users, 
-  X, 
-  Send, 
-  PhoneOff, 
-  Settings, 
-  UserPlus,
-  BookOpen 
-} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Settings, UserPlus, Users } from "lucide-react";
+import { Button } from "./ui/button";
+import VideoControls from "./video-call/VideoControls";
+import ChatPanel from "./video-call/ChatPanel";
 import Quiz from "./Quiz";
 
 const VideoCall = () => {
@@ -28,7 +16,7 @@ const VideoCall = () => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<{ text: string; sender: string; timestamp: string }[]>([]);
-  const [participants, setParticipants] = useState([
+  const [participants] = useState([
     { id: 1, name: "John Smith", role: "Teacher" },
     { id: 2, name: "Alice Johnson", role: "Student" },
     { id: 3, name: "Bob Wilson", role: "Student" },
@@ -37,7 +25,6 @@ const VideoCall = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate receiving a message
     const timer = setTimeout(() => {
       const newMessage = {
         text: "Welcome to the class! Let's begin our lesson.",
@@ -76,14 +63,12 @@ const VideoCall = () => {
       description: "You have left the class",
       duration: 2000,
     });
-    // Navigate back to home page after a brief delay
     setTimeout(() => window.location.href = "/", 2000);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="px-4 py-2">
@@ -101,7 +86,6 @@ const VideoCall = () => {
           </div>
         </div>
 
-        {/* Main Video Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           {participants.map((participant) => (
             <Card key={participant.id} className="glass-card aspect-video relative overflow-hidden">
@@ -118,90 +102,31 @@ const VideoCall = () => {
           ))}
         </div>
 
-        {/* Chat Sidebar */}
         {isChatOpen && (
-          <Card className="glass-card fixed right-4 top-4 bottom-20 w-80 p-4 flex flex-col bg-gray-900/90 border-gray-700">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-white">Class Chat</h3>
-              <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <ScrollArea className="flex-1 mb-4 pr-4">
-              {messages.map((msg, index) => (
-                <div key={index} className="mb-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-primary">{msg.sender}</span>
-                    <span className="text-xs text-gray-400">{msg.timestamp}</span>
-                  </div>
-                  <p className="text-white/90 bg-gray-800/50 rounded-lg p-2">{msg.text}</p>
-                </div>
-              ))}
-            </ScrollArea>
-            <div className="flex gap-2">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message..."
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-              <Button onClick={handleSendMessage} variant="secondary">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
+          <ChatPanel
+            messages={messages}
+            message={message}
+            onMessageChange={setMessage}
+            onSendMessage={handleSendMessage}
+            onClose={() => setIsChatOpen(false)}
+          />
         )}
 
-        {/* Quiz Component */}
         {isQuizOpen && <Quiz onClose={() => setIsQuizOpen(false)} />}
 
-        {/* Controls */}
-        <Card className="glass-card p-4 fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-gray-900/90 border-gray-700">
-          <Button
-            variant="outline"
-            className={`rounded-full p-4 ${isMuted ? "bg-red-500 text-white" : ""}`}
-            onClick={() => setIsMuted(!isMuted)}
-          >
-            <Mic className="w-6 h-6" />
-          </Button>
-          <Button
-            variant="outline"
-            className={`rounded-full p-4 ${isVideoOff ? "bg-red-500 text-white" : ""}`}
-            onClick={() => setIsVideoOff(!isVideoOff)}
-          >
-            <Video className="w-6 h-6" />
-          </Button>
-          <Button
-            variant="outline"
-            className={`rounded-full p-4 ${isScreenSharing ? "bg-green-500 text-white" : ""}`}
-            onClick={toggleScreenShare}
-          >
-            <Share className="w-6 h-6" />
-          </Button>
-          <Button
-            variant="outline"
-            className={`rounded-full p-4 ${isChatOpen ? "bg-primary text-white" : ""}`}
-            onClick={() => setIsChatOpen(!isChatOpen)}
-          >
-            <MessageSquare className="w-6 h-6" />
-          </Button>
-          <Button
-            variant="outline"
-            className={`rounded-full p-4 ${isQuizOpen ? "bg-primary text-white" : ""}`}
-            onClick={() => setIsQuizOpen(!isQuizOpen)}
-          >
-            <BookOpen className="w-6 h-6" />
-          </Button>
-          <Button 
-            variant="destructive" 
-            className="rounded-full px-6 flex items-center gap-2"
-            onClick={handleEndCall}
-          >
-            <PhoneOff className="w-4 h-4" />
-            End Call
-          </Button>
-        </Card>
+        <VideoControls
+          isMuted={isMuted}
+          isVideoOff={isVideoOff}
+          isScreenSharing={isScreenSharing}
+          isChatOpen={isChatOpen}
+          isQuizOpen={isQuizOpen}
+          onToggleMute={() => setIsMuted(!isMuted)}
+          onToggleVideo={() => setIsVideoOff(!isVideoOff)}
+          onToggleScreenShare={toggleScreenShare}
+          onToggleChat={() => setIsChatOpen(!isChatOpen)}
+          onToggleQuiz={() => setIsQuizOpen(!isQuizOpen)}
+          onEndCall={handleEndCall}
+        />
       </div>
     </div>
   );
