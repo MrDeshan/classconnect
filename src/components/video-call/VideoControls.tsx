@@ -5,7 +5,10 @@ import {
   Share, 
   MessageSquare, 
   PhoneOff,
-  BookOpen 
+  BookOpen,
+  Record,
+  Hand,
+  Users
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -15,11 +18,17 @@ interface VideoControlsProps {
   isScreenSharing: boolean;
   isChatOpen: boolean;
   isQuizOpen: boolean;
+  isRecording: boolean;
+  isHandRaised: boolean;
+  isParticipantsOpen: boolean;
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
   onToggleChat: () => void;
   onToggleQuiz: () => void;
+  onToggleRecording: () => void;
+  onToggleHandRaise: () => void;
+  onToggleParticipants: () => void;
   onEndCall: () => void;
 }
 
@@ -29,11 +38,17 @@ const VideoControls = ({
   isScreenSharing,
   isChatOpen,
   isQuizOpen,
+  isRecording,
+  isHandRaised,
+  isParticipantsOpen,
   onToggleMute,
   onToggleVideo,
   onToggleScreenShare,
   onToggleChat,
   onToggleQuiz,
+  onToggleRecording,
+  onToggleHandRaise,
+  onToggleParticipants,
   onEndCall,
 }: VideoControlsProps) => {
   return (
@@ -61,6 +76,20 @@ const VideoControls = ({
       </Button>
       <Button
         variant="outline"
+        className={`rounded-full p-4 ${isRecording ? "bg-red-500 text-white animate-pulse" : ""}`}
+        onClick={onToggleRecording}
+      >
+        <Record className="w-6 h-6" />
+      </Button>
+      <Button
+        variant="outline"
+        className={`rounded-full p-4 ${isHandRaised ? "bg-yellow-500 text-white" : ""}`}
+        onClick={onToggleHandRaise}
+      >
+        <Hand className="w-6 h-6" />
+      </Button>
+      <Button
+        variant="outline"
         className={`rounded-full p-4 ${isChatOpen ? "bg-primary text-white" : ""}`}
         onClick={onToggleChat}
       >
@@ -72,6 +101,13 @@ const VideoControls = ({
         onClick={onToggleQuiz}
       >
         <BookOpen className="w-6 h-6" />
+      </Button>
+      <Button
+        variant="outline"
+        className={`rounded-full p-4 ${isParticipantsOpen ? "bg-primary text-white" : ""}`}
+        onClick={onToggleParticipants}
+      >
+        <Users className="w-6 h-6" />
       </Button>
       <Button 
         variant="destructive" 
