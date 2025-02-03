@@ -6,7 +6,6 @@ import {
   MessageSquare, 
   PhoneOff,
   BookOpen,
-  Record,
   Hand,
   Users
 } from "lucide-react";
@@ -79,7 +78,7 @@ const VideoControls = ({
         className={`rounded-full p-4 ${isRecording ? "bg-red-500 text-white animate-pulse" : ""}`}
         onClick={onToggleRecording}
       >
-        <Record className="w-6 h-6" />
+        <Video className="w-6 h-6" />
       </Button>
       <Button
         variant="outline"
