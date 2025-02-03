@@ -30,6 +30,10 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
         return "An account already exists with this email.";
       case 'auth/weak-password':
         return "Password should be at least 6 characters.";
+      case 'auth/invalid-credential':
+        return mode === 'login' 
+          ? "Invalid email or password. Please try again or sign up if you don't have an account."
+          : "Invalid credentials. Please try again.";
       default:
         return error.message;
     }
