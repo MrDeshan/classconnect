@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthError } from "firebase/auth";
 
 const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const [email, setEmail] = useState('');
@@ -13,6 +13,27 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const getErrorMessage = (error: AuthError) => {
+    switch (error.code) {
+      case 'auth/configuration-not-found':
+        return "Authentication is not properly configured. Please ensure Firebase Authentication is enabled.";
+      case 'auth/invalid-email':
+        return "Invalid email address format.";
+      case 'auth/user-disabled':
+        return "This account has been disabled.";
+      case 'auth/user-not-found':
+        return "No account found with this email.";
+      case 'auth/wrong-password':
+        return "Incorrect password.";
+      case 'auth/email-already-in-use':
+        return "An account already exists with this email.";
+      case 'auth/weak-password':
+        return "Password should be at least 6 characters.";
+      default:
+        return error.message;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +57,10 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
+      console.error('Authentication error:', error);
     } finally {
       setLoading(false);
     }
