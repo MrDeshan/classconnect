@@ -32,8 +32,8 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
         return "Password should be at least 6 characters.";
       case 'auth/invalid-credential':
         return mode === 'login'
-            ? "Invalid email or password. Please try again or sign up if you don't have an account."
-            : "Invalid credentials. Please try again.";
+          ? "Invalid email or password. Please try again or sign up if you don't have an account."
+          : "Invalid credentials. Please try again.";
       default:
         return error.message;
     }
@@ -71,50 +71,42 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   };
 
   return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-600 p-4">
-        <Card className="w-full max-w-md p-6 bg-white shadow-lg border border-gray-300 rounded-lg">
-          <h2 className="text-3xl font-bold text-center mb-4 text-blue-600">
-            Zoom Workplace
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border border-gray-300 rounded-md p-2 w-full"
-                  required
-              />
-            </div>
-            <div>
-              <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border border-gray-300 rounded-md p-2 w-full"
-                  required
-              />
-            </div>
-            <Button
-                type="submit"
-                className="w-full bg-blue-500 text-white hover:bg-blue-600"
-                disabled={loading}
-            >
-              {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center">
-            <Button
-                className="w-full mt-2 border border-blue-500 text-blue-500 hover:bg-blue-100"
-                onClick={() => navigate(mode === 'login' ? '/signup' : '/login')}
-            >
-              {mode === 'login' ? 'Sign up' : 'Sign in'}
-            </Button>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
+      <Card className="w-full max-w-md p-6 bg-gray-900/90 border-gray-700">
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">
+          {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-gray-800 border-gray-700 text-white"
+              required
+            />
           </div>
-        </Card>
-      </div>
+          <div>
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-gray-800 border-gray-700 text-white"
+              required
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 };
 
