@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import VideoCall from "./components/VideoCall";
+import Schedule from "./pages/Schedule";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/class" element={<VideoCall />} />
+          <Route path="/schedule" element={<Schedule />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
