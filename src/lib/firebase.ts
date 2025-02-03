@@ -1,17 +1,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
-if (!import.meta.env.VITE_FIREBASE_API_KEY) {
-  throw new Error('Missing VITE_FIREBASE_API_KEY environment variable');
-}
-
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyB2eaegVKX4Zzbi0fbPpme_Wl8b3yGbLuw",
+  authDomain: "connectclass-37b3e.firebaseapp.com",
+  projectId: "connectclass-37b3e",
+  storageBucket: "connectclass-37b3e.firebasestorage.app",
+  messagingSenderId: "749249672417",
+  appId: "1:749249672417:web:c57c6c09d4106be98733a0",
+  measurementId: "G-6MNR9M25PM"
 };
 
 const app = initializeApp(firebaseConfig);
