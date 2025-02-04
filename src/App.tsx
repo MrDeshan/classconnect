@@ -11,6 +11,9 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import JoinMeeting from "./components/JoinMeeting";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import StudentDashboard from "./pages/StudentDashboard";
+import Quizzes from "./pages/Quizzes";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +27,30 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quizzes"
+            element={
+              <ProtectedRoute>
+                <Quizzes />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/join"
             element={
