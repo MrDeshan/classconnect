@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Settings, UserPlus, Users } from "lucide-react";
+import { Settings, UserPlus, Users, BookOpen, Video } from "lucide-react";
 import { Button } from "./ui/button";
 import VideoControls from "./video-call/VideoControls";
 import ChatPanel from "./video-call/ChatPanel";
@@ -189,14 +189,18 @@ const VideoCall = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
+      <div className="max-w-[1800px] mx-auto p-4">
+        {/* Header Section */}
+        <div className="flex justify-between items-center mb-6 bg-white/80 backdrop-blur-lg rounded-lg p-4">
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="px-4 py-2">
               Live Class
             </Badge>
-            <h2 className="text-white text-xl">Advanced Mathematics</h2>
+            <div>
+              <h2 className="text-2xl font-bold gradient-text">Advanced Mathematics</h2>
+              <p className="text-gray-600">Prof. John Smith • Room 101</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <Button 
@@ -213,8 +217,10 @@ const VideoCall = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <Card className="glass-card aspect-video relative overflow-hidden">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
+          {/* Main Video Section */}
+          <Card className="glass-card lg:col-span-2 xl:col-span-3 aspect-video relative overflow-hidden">
             <video
               ref={localVideoRef}
               autoPlay
@@ -222,25 +228,66 @@ const VideoCall = () => {
               muted
               className="w-full h-full object-cover"
             />
-            <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-sm">
+            <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
+              <Video className="w-4 h-4" />
               You (Host)
             </div>
           </Card>
-          {participants.slice(1).map((participant) => (
-            <Card key={participant.id} className="glass-card aspect-video relative overflow-hidden">
-              <div className="absolute inset-0 bg-gray-800/10 flex items-center justify-center">
-                <Users className="w-16 h-16 text-gray-400" />
-              </div>
-              <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-sm flex items-center gap-2">
-                {participant.name}
-                {participant.role === "Teacher" && (
-                  <Badge variant="secondary" className="text-xs">Teacher</Badge>
-                )}
-              </div>
-            </Card>
-          ))}
+
+          {/* Participants Grid */}
+          <div className="space-y-4">
+            {participants.slice(1).map((participant) => (
+              <Card key={participant.id} className="glass-card aspect-video relative overflow-hidden">
+                <div className="absolute inset-0 bg-gray-800/10 flex items-center justify-center">
+                  <Users className="w-12 h-12 text-gray-400" />
+                </div>
+                <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
+                  {participant.name}
+                  {participant.role === "Teacher" && (
+                    <Badge variant="secondary" className="text-xs">Teacher</Badge>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
 
+        {/* Interactive Features */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsChatOpen(!isChatOpen)}>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Class Chat
+            </h3>
+            <p className="text-sm text-gray-600">Interact with your classmates in real-time</p>
+          </Card>
+          
+          <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsQuizOpen(!isQuizOpen)}>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Active Quiz
+            </h3>
+            <p className="text-sm text-gray-600">Participate in ongoing assessments</p>
+          </Card>
+          
+          <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Participants
+            </h3>
+            <p className="text-sm text-gray-600">View all class participants</p>
+          </Card>
+          
+          <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsHandRaised(!isHandRaised)}>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Video className="w-5 h-5 text-primary" />
+              Recording
+            </h3>
+            <p className="text-sm text-gray-600">{isRecording ? 'Stop Recording' : 'Start Recording'}</p>
+          </Card>
+        </div>
+
+        {/* Panels */}
         {isChatOpen && (
           <ChatPanel
             messages={messages}
@@ -276,6 +323,7 @@ const VideoCall = () => {
           />
         )}
 
+        {/* Video Controls */}
         <VideoControls
           isMuted={isMuted}
           isVideoOff={isVideoOff}
