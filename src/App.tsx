@@ -9,6 +9,7 @@ import VideoCall from "./components/VideoCall";
 import Schedule from "./pages/Schedule";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import JoinMeeting from "./components/JoinMeeting";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,14 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/join"
+            element={
+              <ProtectedRoute>
+                <JoinMeeting />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/class"
             element={

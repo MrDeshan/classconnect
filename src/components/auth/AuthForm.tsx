@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthError } from "firebase/auth";
 
@@ -56,8 +56,8 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           title: "Welcome back!",
           description: "Successfully logged in.",
         });
-        navigate('/');
       }
+      navigate('/join');
     } catch (error: any) {
       toast({
         title: "Error",
@@ -71,40 +71,73 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
-      <Card className="w-full max-w-md p-6 bg-gray-900/90 border-gray-700">
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">
-          {mode === 'login' ? 'Welcome Back' : 'Create Account'}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-blue-600 p-4">
+      <h1 className="text-4xl font-bold text-white mb-8">Class Connect</h1>
+      <Card className="w-full max-w-md p-8 bg-white">
+        <div className="space-y-6">
+          <Button 
+            variant="default" 
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            onClick={() => navigate('/join')}
+          >
+            Join a meeting
+          </Button>
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-gray-500">
+                Or {mode === 'login' ? 'sign in' : 'sign up'}
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-gray-800 border-gray-700 text-white"
+              className="w-full"
               required
             />
-          </div>
-          <div>
             <Input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-gray-800 border-gray-700 text-white"
+              className="w-full"
               required
             />
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
+            </Button>
+          </form>
+
+          <div className="text-center text-sm">
+            {mode === 'login' ? (
+              <p>
+                Don't have an account?{" "}
+                <Link to="/signup" className="text-blue-600 hover:underline">
+                  Sign up
+                </Link>
+              </p>
+            ) : (
+              <p>
+                Already have an account?{" "}
+                <Link to="/login" className="text-blue-600 hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            )}
           </div>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
-          </Button>
-        </form>
+        </div>
       </Card>
     </div>
   );
