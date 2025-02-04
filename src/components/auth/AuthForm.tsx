@@ -5,38 +5,35 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate, Link } from "react-router-dom";
 import { auth } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthError } from "firebase/auth";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  AuthError,
+  updateProfile 
+} from "firebase/auth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('student');
+  const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const getErrorMessage = (error: AuthError) => {
-    switch (error.code) {
-      case 'auth/configuration-not-found':
-        return "Authentication is not properly configured. Please ensure Firebase Authentication is enabled.";
-      case 'auth/invalid-email':
-        return "Invalid email address format.";
-      case 'auth/user-disabled':
-        return "This account has been disabled.";
-      case 'auth/user-not-found':
-        return "No account found with this email.";
-      case 'auth/wrong-password':
-        return "Incorrect password.";
-      case 'auth/email-already-in-use':
-        return "An account already exists with this email.";
-      case 'auth/weak-password':
-        return "Password should be at least 6 characters.";
-      case 'auth/invalid-credential':
-        return mode === 'login'
-          ? "Invalid email or password. Please try again or sign up if you don't have an account."
-          : "Invalid credentials. Please try again.";
-      default:
-        return error.message;
-    }
+  // Generate a random 6-digit code for teacher verification
+  const generateVerificationCode = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,13 +42,26 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
 
     try {
       if (mode === 'signup') {
-        await createUserWithEmailAndPassword(auth, email, password);
+        if (role === 'teacher' && verificationCode !== '123456') { // In a real app, verify against backend
+          throw new Error('Invalid teacher verification code');
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, {
+          displayName: name,
+        });
+        
+        // Store user role in localStorage (in a real app, store in database)
+        localStorage.setItem('userRole', role);
+        
         toast({
           title: "Success!",
           description: "Account created successfully.",
         });
       } else {
         await signInWithEmailAndPassword(auth, email, password);
+        // Retrieve role from localStorage (in a real app, get from database)
+        const userRole = localStorage.getItem('userRole') || 'student';
         toast({
           title: "Welcome back!",
           description: "Successfully logged in.",
@@ -61,7 +71,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: getErrorMessage(error),
+        description: error.message,
         variant: "destructive",
       });
       console.error('Authentication error:', error);
@@ -71,9 +81,11 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-blue-600 p-4">
-      <h1 className="text-4xl font-bold text-white mb-8">Class Connect</h1>
-      <Card className="w-full max-w-md p-8 bg-white">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800 p-4">
+      <h1 className="text-4xl font-bold text-white mb-2">Class Connect</h1>
+      <p className="text-white/80 mb-8">Virtual Learning Platform</p>
+      
+      <Card className="w-full max-w-md p-8 bg-white/95 backdrop-blur-lg">
         <div className="space-y-6">
           <Button 
             variant="default" 
@@ -95,6 +107,41 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'signup' && (
+              <>
+                <Input
+                  type="text"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full"
+                  required
+                />
+                <div className="space-y-2">
+                  <Label>I am a:</Label>
+                  <RadioGroup defaultValue="student" onValueChange={setRole}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="student" id="student" />
+                      <Label htmlFor="student">Student</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="teacher" id="teacher" />
+                      <Label htmlFor="teacher">Teacher</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                {role === 'teacher' && (
+                  <Input
+                    type="text"
+                    placeholder="Teacher Verification Code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    className="w-full"
+                    required
+                  />
+                )}
+              </>
+            )}
             <Input
               type="email"
               placeholder="Email"

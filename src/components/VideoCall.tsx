@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Settings, UserPlus, Users, BookOpen, Video } from "lucide-react";
+import { Settings, UserPlus, Users, BookOpen, Video, Shield } from "lucide-react";
 import { Button } from "./ui/button";
 import VideoControls from "./video-call/VideoControls";
 import ChatPanel from "./video-call/ChatPanel";
@@ -36,6 +36,10 @@ const VideoCall = () => {
     { id: 4, name: "Emma Davis", role: "Student", handRaised: false },
   ]);
   const { toast } = useToast();
+
+  const [isTeacher] = useState(() => localStorage.getItem('userRole') === 'teacher');
+  const [lockedParticipants, setLockedParticipants] = useState<number[]>([]);
+  const [mutedParticipants, setMutedParticipants] = useState<number[]>([]);
 
   // Initialize media devices on component mount
   useEffect(() => {
@@ -188,6 +192,46 @@ const VideoCall = () => {
     setTimeout(() => window.location.href = "/", 2000);
   };
 
+  const handleLockParticipant = (participantId: number) => {
+    if (!isTeacher) return;
+    setLockedParticipants(prev => 
+      prev.includes(participantId) 
+        ? prev.filter(id => id !== participantId)
+        : [...prev, participantId]
+    );
+    toast({
+      title: lockedParticipants.includes(participantId) ? "Participant unlocked" : "Participant locked",
+      duration: 2000,
+    });
+  };
+
+  const handleMuteParticipant = (participantId: number) => {
+    if (!isTeacher) return;
+    setMutedParticipants(prev => 
+      prev.includes(participantId) 
+        ? prev.filter(id => id !== participantId)
+        : [...prev, participantId]
+    );
+    toast({
+      title: mutedParticipants.includes(participantId) ? "Participant unmuted" : "Participant muted",
+      duration: 2000,
+    });
+  };
+
+  const handleEndMeeting = () => {
+    if (!isTeacher) {
+      handleEndCall();
+      return;
+    }
+    // End meeting for all participants
+    toast({
+      title: "Meeting ended",
+      description: "You have ended the meeting for all participants",
+      duration: 2000,
+    });
+    setTimeout(() => window.location.href = "/", 2000);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
       <div className="max-w-[1800px] mx-auto p-4">
@@ -199,25 +243,36 @@ const VideoCall = () => {
             </Badge>
             <div>
               <h2 className="text-2xl font-bold gradient-text">Advanced Mathematics</h2>
-              <p className="text-gray-600">Prof. John Smith • Room 101</p>
+              <p className="text-gray-600">
+                {isTeacher ? (
+                  <span className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" />
+                    Teacher Mode
+                  </span>
+                ) : (
+                  "Student View"
+                )}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className={`rounded-full ${isSettingsOpen ? 'bg-primary text-white' : ''}`}
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
+            {isTeacher && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full"
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="outline" size="icon" className="rounded-full">
               <UserPlus className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* Main Content Grid */}
+        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
           {/* Main Video Section */}
           <Card className="glass-card lg:col-span-2 xl:col-span-3 aspect-video relative overflow-hidden">
@@ -254,21 +309,26 @@ const VideoCall = () => {
 
         {/* Interactive Features */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsChatOpen(!isChatOpen)}>
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              Class Chat
-            </h3>
-            <p className="text-sm text-gray-600">Interact with your classmates in real-time</p>
-          </Card>
+          {/* Only show certain features to teachers */}
+          {(isTeacher || !isTeacher) && (
+            <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsChatOpen(!isChatOpen)}>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Class Chat
+              </h3>
+              <p className="text-sm text-gray-600">Interact with your classmates in real-time</p>
+            </Card>
+          )}
           
-          <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsQuizOpen(!isQuizOpen)}>
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              Active Quiz
-            </h3>
-            <p className="text-sm text-gray-600">Participate in ongoing assessments</p>
-          </Card>
+          {isTeacher && (
+            <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsQuizOpen(!isQuizOpen)}>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Create Quiz
+              </h3>
+              <p className="text-sm text-gray-600">Create and manage assessments</p>
+            </Card>
+          )}
           
           <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}>
             <h3 className="font-semibold mb-2 flex items-center gap-2">
@@ -278,13 +338,15 @@ const VideoCall = () => {
             <p className="text-sm text-gray-600">View all class participants</p>
           </Card>
           
-          <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsHandRaised(!isHandRaised)}>
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <Video className="w-5 h-5 text-primary" />
-              Recording
-            </h3>
-            <p className="text-sm text-gray-600">{isRecording ? 'Stop Recording' : 'Start Recording'}</p>
-          </Card>
+          {isTeacher && (
+            <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsRecording(!isRecording)}>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Video className="w-5 h-5 text-primary" />
+                Recording
+              </h3>
+              <p className="text-sm text-gray-600">{isRecording ? 'Stop Recording' : 'Start Recording'}</p>
+            </Card>
+          )}
         </div>
 
         {/* Panels */}
@@ -308,16 +370,21 @@ const VideoCall = () => {
           />
         )}
 
-        {isQuizOpen && <Quiz onClose={() => setIsQuizOpen(false)} />}
+        {isQuizOpen && isTeacher && <Quiz onClose={() => setIsQuizOpen(false)} />}
 
         {isParticipantsOpen && (
           <ParticipantsList
             participants={participants}
             onClose={() => setIsParticipantsOpen(false)}
+            isTeacher={isTeacher}
+            onLockParticipant={handleLockParticipant}
+            onMuteParticipant={handleMuteParticipant}
+            lockedParticipants={lockedParticipants}
+            mutedParticipants={mutedParticipants}
           />
         )}
 
-        {isSettingsOpen && (
+        {isSettingsOpen && isTeacher && (
           <SettingsPanel
             onClose={() => setIsSettingsOpen(false)}
           />
@@ -333,6 +400,7 @@ const VideoCall = () => {
           isRecording={isRecording}
           isHandRaised={isHandRaised}
           isParticipantsOpen={isParticipantsOpen}
+          isTeacher={isTeacher}
           onToggleMute={toggleMute}
           onToggleVideo={toggleVideo}
           onToggleScreenShare={toggleScreenShare}
@@ -348,7 +416,7 @@ const VideoCall = () => {
             });
           }}
           onToggleParticipants={() => setIsParticipantsOpen(!isParticipantsOpen)}
-          onEndCall={handleEndCall}
+          onEndCall={handleEndMeeting}
         />
       </div>
     </div>
