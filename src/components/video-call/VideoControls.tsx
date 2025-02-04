@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
-interface VideoControlsProps {
+export interface VideoControlsProps {
   isMuted: boolean;
   isVideoOff: boolean;
   isScreenSharing: boolean;
@@ -20,6 +20,7 @@ interface VideoControlsProps {
   isRecording: boolean;
   isHandRaised: boolean;
   isParticipantsOpen: boolean;
+  isTeacher: boolean;
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
@@ -40,6 +41,7 @@ const VideoControls = ({
   isRecording,
   isHandRaised,
   isParticipantsOpen,
+  isTeacher,
   onToggleMute,
   onToggleVideo,
   onToggleScreenShare,
@@ -73,20 +75,24 @@ const VideoControls = ({
       >
         <Share className="w-6 h-6" />
       </Button>
-      <Button
-        variant="outline"
-        className={`rounded-full p-4 ${isRecording ? "bg-red-500 text-white animate-pulse" : ""}`}
-        onClick={onToggleRecording}
-      >
-        <Video className="w-6 h-6" />
-      </Button>
-      <Button
-        variant="outline"
-        className={`rounded-full p-4 ${isHandRaised ? "bg-yellow-500 text-white" : ""}`}
-        onClick={onToggleHandRaise}
-      >
-        <Hand className="w-6 h-6" />
-      </Button>
+      {isTeacher && (
+        <Button
+          variant="outline"
+          className={`rounded-full p-4 ${isRecording ? "bg-red-500 text-white animate-pulse" : ""}`}
+          onClick={onToggleRecording}
+        >
+          <Video className="w-6 h-6" />
+        </Button>
+      )}
+      {!isTeacher && (
+        <Button
+          variant="outline"
+          className={`rounded-full p-4 ${isHandRaised ? "bg-yellow-500 text-white" : ""}`}
+          onClick={onToggleHandRaise}
+        >
+          <Hand className="w-6 h-6" />
+        </Button>
+      )}
       <Button
         variant="outline"
         className={`rounded-full p-4 ${isChatOpen ? "bg-primary text-white" : ""}`}
@@ -94,13 +100,15 @@ const VideoControls = ({
       >
         <MessageSquare className="w-6 h-6" />
       </Button>
-      <Button
-        variant="outline"
-        className={`rounded-full p-4 ${isQuizOpen ? "bg-primary text-white" : ""}`}
-        onClick={onToggleQuiz}
-      >
-        <BookOpen className="w-6 h-6" />
-      </Button>
+      {isTeacher && (
+        <Button
+          variant="outline"
+          className={`rounded-full p-4 ${isQuizOpen ? "bg-primary text-white" : ""}`}
+          onClick={onToggleQuiz}
+        >
+          <BookOpen className="w-6 h-6" />
+        </Button>
+      )}
       <Button
         variant="outline"
         className={`rounded-full p-4 ${isParticipantsOpen ? "bg-primary text-white" : ""}`}
@@ -114,7 +122,7 @@ const VideoControls = ({
         onClick={onEndCall}
       >
         <PhoneOff className="w-4 h-4" />
-        End Call
+        {isTeacher ? 'End Meeting' : 'Leave'}
       </Button>
     </Card>
   );
