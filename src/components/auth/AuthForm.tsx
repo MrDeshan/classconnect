@@ -4,13 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate, Link } from "react-router-dom";
-import { auth, database } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   updateProfile 
 } from "firebase/auth";
-import { ref, set, get } from "firebase/database";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
@@ -24,15 +24,15 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const saveUserToDatabase = async (uid: string, userData: any) => {
-    const userRef = ref(database, `users/${uid}`);
-    await set(userRef, userData);
+  const saveUserToFirestore = async (uid: string, userData: any) => {
+    const userRef = doc(db, 'users', uid);
+    await setDoc(userRef, userData);
   };
 
-  const getUserFromDatabase = async (uid: string) => {
-    const userRef = ref(database, `users/${uid}`);
-    const snapshot = await get(userRef);
-    return snapshot.val();
+  const getUserFromFirestore = async (uid: string) => {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+    return userSnap.exists() ? userSnap.data() : null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +50,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           displayName: name,
         });
 
-        // Save user data to Firebase Realtime Database
+        // Save user data to Firestore
         const userData = {
           name,
           email,
@@ -59,7 +59,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           lastLogin: new Date().toISOString(),
         };
         
-        await saveUserToDatabase(userCredential.user.uid, userData);
+        await saveUserToFirestore(userCredential.user.uid, userData);
         
         localStorage.setItem('userRole', role);
         localStorage.setItem('userName', name);
@@ -74,8 +74,8 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
-        // Get user data from database
-        const userData = await getUserFromDatabase(userCredential.user.uid);
+        // Get user data from Firestore
+        const userData = await getUserFromFirestore(userCredential.user.uid);
         
         if (userData) {
           localStorage.setItem('userRole', userData.role);
@@ -83,7 +83,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           localStorage.setItem('userEmail', userData.email);
           
           // Update last login
-          await saveUserToDatabase(userCredential.user.uid, {
+          await saveUserToFirestore(userCredential.user.uid, {
             ...userData,
             lastLogin: new Date().toISOString(),
           });
@@ -94,7 +94,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           description: "Successfully logged in.",
         });
         
-        // Navigate based on role from database
+        // Navigate based on role from Firestore
         navigate(userData?.role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
       }
     } catch (error: any) {
