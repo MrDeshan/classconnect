@@ -7,17 +7,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { 
   createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  AuthError,
+  signInWithEmailAndPassword,
   updateProfile 
 } from "firebase/auth";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
@@ -31,18 +23,13 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Generate a random 6-digit code for teacher verification
-  const generateVerificationCode = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (mode === 'signup') {
-        if (role === 'teacher' && verificationCode !== '123456') { // In a real app, verify against backend
+        if (role === 'teacher' && verificationCode !== '123456') {
           throw new Error('Invalid teacher verification code');
         }
 
@@ -51,23 +38,33 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           displayName: name,
         });
         
-        // Store user role in localStorage (in a real app, store in database)
         localStorage.setItem('userRole', role);
+        localStorage.setItem('userName', name);
+        localStorage.setItem('userEmail', email);
         
         toast({
           title: "Success!",
           description: "Account created successfully.",
         });
+        
+        // Navigate based on role
+        navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
       } else {
         await signInWithEmailAndPassword(auth, email, password);
-        // Retrieve role from localStorage (in a real app, get from database)
         const userRole = localStorage.getItem('userRole') || 'student';
+        const userName = auth.currentUser?.displayName || '';
+        
+        localStorage.setItem('userName', userName);
+        localStorage.setItem('userEmail', email);
+        
         toast({
           title: "Welcome back!",
           description: "Successfully logged in.",
         });
+        
+        // Navigate based on role
+        navigate(userRole === 'teacher' ? '/teacher-dashboard' : '/dashboard');
       }
-      navigate('/join');
     } catch (error: any) {
       toast({
         title: "Error",
@@ -86,104 +83,83 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
       <p className="text-white/80 mb-8">Virtual Learning Platform</p>
       
       <Card className="w-full max-w-md p-8 bg-white/95 backdrop-blur-lg">
-        <div className="space-y-6">
-          <Button 
-            variant="default" 
-            className="w-full bg-blue-600 hover:bg-blue-700"
-            onClick={() => navigate('/join')}
-          >
-            Join a meeting
-          </Button>
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">
-                Or {mode === 'login' ? 'sign in' : 'sign up'}
-              </span>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <>
+              <Input
+                type="text"
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full"
+                required
+              />
+              <div className="space-y-2">
+                <Label>I am a:</Label>
+                <RadioGroup defaultValue="student" onValueChange={setRole}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="student" id="student" />
+                    <Label htmlFor="student">Student</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="teacher" id="teacher" />
+                    <Label htmlFor="teacher">Teacher</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              {role === 'teacher' && (
                 <Input
                   type="text"
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Teacher Verification Code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
                   className="w-full"
                   required
                 />
-                <div className="space-y-2">
-                  <Label>I am a:</Label>
-                  <RadioGroup defaultValue="student" onValueChange={setRole}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="student" id="student" />
-                      <Label htmlFor="student">Student</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="teacher" id="teacher" />
-                      <Label htmlFor="teacher">Teacher</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                {role === 'teacher' && (
-                  <Input
-                    type="text"
-                    placeholder="Teacher Verification Code"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
-                    className="w-full"
-                    required
-                  />
-                )}
-              </>
-            )}
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full"
-              required
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full"
-              required
-            />
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
-            >
-              {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
-            </Button>
-          </form>
+              )}
+            </>
+          )}
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full"
+            required
+          />
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full"
+            required
+          />
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
+          </Button>
+        </form>
 
-          <div className="text-center text-sm">
-            {mode === 'login' ? (
-              <p>
-                Don't have an account?{" "}
-                <Link to="/signup" className="text-blue-600 hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            ) : (
-              <p>
-                Already have an account?{" "}
-                <Link to="/login" className="text-blue-600 hover:underline">
-                  Sign in
-                </Link>
-              </p>
-            )}
-          </div>
+        <div className="text-center text-sm mt-4">
+          {mode === 'login' ? (
+            <p>
+              Don't have an account?{" "}
+              <Link to="/signup" className="text-blue-600 hover:underline">
+                Sign up
+              </Link>
+            </p>
+          ) : (
+            <p>
+              Already have an account?{" "}
+              <Link to="/login" className="text-blue-600 hover:underline">
+                Sign in
+              </Link>
+            </p>
+          )}
         </div>
       </Card>
     </div>
