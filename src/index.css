@@ -10,19 +10,19 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 223 100% 51%;
+    --primary: 262 80% 75%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 223 70% 45%;
+    --secondary: 262 30% 54%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 223 100% 96%;
+    --accent: 262 80% 92%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 223 100% 51%;
+    --ring: 262 80% 75%;
     --radius: 0.75rem;
   }
 }
@@ -33,12 +33,13 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-color: rgb(25, 91, 255);
+    background-image: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+    min-height: 100vh;
   }
 }
 
 .glass-card {
-  @apply bg-white/95 backdrop-blur-sm border border-white/20 shadow-xl rounded-xl;
+  @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-xl;
 }
 
 .hover-scale {

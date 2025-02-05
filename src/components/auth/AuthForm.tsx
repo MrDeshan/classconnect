@@ -8,8 +8,16 @@ import { auth } from "@/lib/firebase";
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
+  AuthError,
   updateProfile 
 } from "firebase/auth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
@@ -23,13 +31,18 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Generate a random 6-digit code for teacher verification
+  const generateVerificationCode = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (mode === 'signup') {
-        if (role === 'teacher' && verificationCode !== '123456') {
+        if (role === 'teacher' && verificationCode !== '123456') { // In a real app, verify against backend
           throw new Error('Invalid teacher verification code');
         }
 
@@ -38,6 +51,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           displayName: name,
         });
         
+        // Store user role in localStorage (in a real app, store in database)
         localStorage.setItem('userRole', role);
         
         toast({
@@ -46,6 +60,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
         });
       } else {
         await signInWithEmailAndPassword(auth, email, password);
+        // Retrieve role from localStorage (in a real app, get from database)
         const userRole = localStorage.getItem('userRole') || 'student';
         toast({
           title: "Welcome back!",
@@ -66,15 +81,15 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800 p-4">
       <h1 className="text-4xl font-bold text-white mb-2">Class Connect</h1>
       <p className="text-white/80 mb-8">Virtual Learning Platform</p>
       
-      <Card className="w-full max-w-md p-8 glass-card">
+      <Card className="w-full max-w-md p-8 bg-white/95 backdrop-blur-lg">
         <div className="space-y-6">
           <Button 
             variant="default" 
-            className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
+            className="w-full bg-blue-600 hover:bg-blue-700"
             onClick={() => navigate('/join')}
           >
             Join a meeting
@@ -82,7 +97,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-200" />
+              <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-white px-2 text-gray-500">
@@ -99,7 +114,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
                   placeholder="Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-white border-gray-200"
+                  className="w-full"
                   required
                 />
                 <div className="space-y-2">
@@ -121,7 +136,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
                     placeholder="Teacher Verification Code"
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
-                    className="w-full bg-white border-gray-200"
+                    className="w-full"
                     required
                   />
                 )}
@@ -132,7 +147,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-white border-gray-200"
+              className="w-full"
               required
             />
             <Input
@@ -140,12 +155,12 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white border-gray-200"
+              className="w-full"
               required
             />
             <Button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
+              className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={loading}
             >
               {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
@@ -156,14 +171,14 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
             {mode === 'login' ? (
               <p>
                 Don't have an account?{" "}
-                <Link to="/signup" className="text-primary hover:underline font-semibold">
+                <Link to="/signup" className="text-blue-600 hover:underline">
                   Sign up
                 </Link>
               </p>
             ) : (
               <p>
                 Already have an account?{" "}
-                <Link to="/login" className="text-primary hover:underline font-semibold">
+                <Link to="/login" className="text-blue-600 hover:underline">
                   Sign in
                 </Link>
               </p>
