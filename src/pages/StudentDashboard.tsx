@@ -2,12 +2,25 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Video, MessageSquare, BookOpen, Calendar, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { auth, database } from "@/lib/firebase";
+import { ref, onValue } from "firebase/database";
 import FeatureCard from "@/components/features/FeatureCard";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const username = localStorage.getItem('username') || 'Student';
-  const userRole = localStorage.getItem('userRole');
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    if (auth.currentUser) {
+      const userRef = ref(database, `users/${auth.currentUser.uid}`);
+      const unsubscribe = onValue(userRef, (snapshot) => {
+        setUserData(snapshot.val());
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
 
   const features = [
     {
@@ -39,10 +52,11 @@ const StudentDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold gradient-text">Welcome, {username}!</h1>
+            <h1 className="text-3xl font-bold gradient-text">
+              Welcome, {userData?.name || 'Student'}!
+            </h1>
             <p className="text-gray-600">Your Learning Dashboard</p>
           </div>
           <Button 
@@ -55,7 +69,6 @@ const StudentDashboard = () => {
           </Button>
         </div>
 
-        {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feature, index) => (
             <FeatureCard
@@ -68,7 +81,6 @@ const StudentDashboard = () => {
           ))}
         </div>
 
-        {/* Quick Actions */}
         <Card className="mt-8 p-6 glass-card">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
