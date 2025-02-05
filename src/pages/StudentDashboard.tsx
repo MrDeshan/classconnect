@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Video, MessageSquare, BookOpen, Calendar, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { auth, database } from "@/lib/firebase";
-import { ref, onValue } from "firebase/database";
+import { auth, db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 import FeatureCard from "@/components/features/FeatureCard";
 
 const StudentDashboard = () => {
@@ -13,9 +13,11 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     if (auth.currentUser) {
-      const userRef = ref(database, `users/${auth.currentUser.uid}`);
-      const unsubscribe = onValue(userRef, (snapshot) => {
-        setUserData(snapshot.val());
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      const unsubscribe = onSnapshot(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setUserData(snapshot.data());
+        }
       });
 
       return () => unsubscribe();
