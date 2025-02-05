@@ -45,32 +45,44 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           throw new Error('Invalid teacher verification code');
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, {
-          displayName: name,
-        });
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(userCredential.user, {
+            displayName: name,
+          });
 
-        // Save user data to Firestore
-        const userData = {
-          name,
-          email,
-          role,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-        };
-        
-        await saveUserToFirestore(userCredential.user.uid, userData);
-        
-        localStorage.setItem('userRole', role);
-        localStorage.setItem('userName', name);
-        localStorage.setItem('userEmail', email);
-        
-        toast({
-          title: "Success!",
-          description: "Account created successfully.",
-        });
-        
-        navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+          // Save user data to Firestore
+          const userData = {
+            name,
+            email,
+            role,
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          };
+          
+          await saveUserToFirestore(userCredential.user.uid, userData);
+          
+          localStorage.setItem('userRole', role);
+          localStorage.setItem('userName', name);
+          localStorage.setItem('userEmail', email);
+          
+          toast({
+            title: "Success!",
+            description: "Account created successfully.",
+          });
+          
+          navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+        } catch (error: any) {
+          if (error.code === 'auth/email-already-in-use') {
+            toast({
+              title: "Email Already Registered",
+              description: "This email address is already registered. Please try logging in instead.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
+        }
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
