@@ -31,6 +31,10 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const generateVerificationCode = () => {
+    return 'Teacher1234'; // Fixed verification code as requested
+  };
+
   const saveUserToFirestore = async (uid: string, userData: any) => {
     try {
       const userRef = doc(db, 'users', uid);
@@ -100,7 +104,10 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           displayName: name,
         });
 
-        // Save user data to Firestore with verification code for teachers
+        // Generate verification code for teachers automatically
+        const verificationCode = role === 'teacher' ? generateVerificationCode() : null;
+
+        // Save user data to Firestore
         const userData = {
           name,
           email,
@@ -108,7 +115,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           verified: role === 'student',
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
-          verificationCode: role === 'teacher' ? 'Teacher1234' : null,
+          verificationCode: verificationCode,
         };
         
         await saveUserToFirestore(userCredential.user.uid, userData);
