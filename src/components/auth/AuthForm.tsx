@@ -31,31 +31,6 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const generateVerificationCode = () => {
-    return 'Teacher1234'; // Fixed verification code as requested
-  };
-
-  const saveUserToFirestore = async (uid: string, userData: any) => {
-    try {
-      const userRef = doc(db, 'users', uid);
-      await setDoc(userRef, userData);
-    } catch (error) {
-      console.error("Error saving user to Firestore:", error);
-      throw error;
-    }
-  };
-
-  const getUserFromFirestore = async (uid: string) => {
-    try {
-      const userRef = doc(db, 'users', uid);
-      const userSnap = await getDoc(userRef);
-      return userSnap.exists() ? userSnap.data() : null;
-    } catch (error) {
-      console.error("Error getting user from Firestore:", error);
-      return null;
-    }
-  };
-
   const handleVerificationSubmit = async () => {
     if (verificationCode !== 'Teacher1234') {
       toast({
@@ -93,6 +68,27 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
     }
   };
 
+  const saveUserToFirestore = async (uid: string, userData: any) => {
+    try {
+      const userRef = doc(db, 'users', uid);
+      await setDoc(userRef, userData);
+    } catch (error) {
+      console.error("Error saving user to Firestore:", error);
+      throw error;
+    }
+  };
+
+  const getUserFromFirestore = async (uid: string) => {
+    try {
+      const userRef = doc(db, 'users', uid);
+      const userSnap = await getDoc(userRef);
+      return userSnap.exists() ? userSnap.data() : null;
+    } catch (error) {
+      console.error("Error getting user from Firestore:", error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -100,32 +96,35 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
     try {
       if (mode === 'signup') {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, {
-          displayName: name,
-        });
+        
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, {
+            displayName: name,
+          });
 
-        // Save user data to Firestore
-        const userData = {
-          name,
-          email,
-          role,
-          verified: role === 'student',
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-        };
-        
-        await saveUserToFirestore(userCredential.user.uid, userData);
-        
-        localStorage.setItem('userRole', role);
-        localStorage.setItem('userName', name);
-        localStorage.setItem('userEmail', email);
-        
-        toast({
-          title: "Success!",
-          description: "Account created successfully.",
-        });
-        
-        navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+          // Save user data to Firestore
+          const userData = {
+            name,
+            email,
+            role,
+            verified: role === 'student',
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          };
+          
+          await saveUserToFirestore(userCredential.user.uid, userData);
+          
+          localStorage.setItem('userRole', role);
+          localStorage.setItem('userName', name);
+          localStorage.setItem('userEmail', email);
+          
+          toast({
+            title: "Success!",
+            description: "Account created successfully.",
+          });
+          
+          navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+        }
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const userData = await getUserFromFirestore(userCredential.user.uid);
