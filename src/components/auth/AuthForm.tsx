@@ -32,14 +32,24 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const navigate = useNavigate();
 
   const saveUserToFirestore = async (uid: string, userData: any) => {
-    const userRef = doc(db, 'users', uid);
-    await setDoc(userRef, userData);
+    try {
+      const userRef = doc(db, 'users', uid);
+      await setDoc(userRef, userData);
+    } catch (error) {
+      console.error("Error saving user to Firestore:", error);
+      throw error;
+    }
   };
 
   const getUserFromFirestore = async (uid: string) => {
-    const userRef = doc(db, 'users', uid);
-    const userSnap = await getDoc(userRef);
-    return userSnap.exists() ? userSnap.data() : null;
+    try {
+      const userRef = doc(db, 'users', uid);
+      const userSnap = await getDoc(userRef);
+      return userSnap.exists() ? userSnap.data() : null;
+    } catch (error) {
+      console.error("Error getting user from Firestore:", error);
+      return null;
+    }
   };
 
   const handleVerificationSubmit = async () => {
@@ -52,8 +62,12 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
       return;
     }
 
-    const user = auth.currentUser;
-    if (user) {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error("No authenticated user found");
+      }
+
       await saveUserToFirestore(user.uid, {
         name: localStorage.getItem('userName'),
         email: user.email,
@@ -66,6 +80,12 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
       localStorage.setItem('userRole', 'teacher');
       setShowVerificationDialog(false);
       navigate('/teacher-dashboard');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -75,77 +95,75 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
 
     try {
       if (mode === 'signup') {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          await updateProfile(userCredential.user, {
-            displayName: name,
-          });
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, {
+          displayName: name,
+        });
 
-          // Save user data to Firestore
-          const userData = {
-            name,
-            email,
-            role,
-            verified: role === 'student',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-          };
-          
-          await saveUserToFirestore(userCredential.user.uid, userData);
-          
-          localStorage.setItem('userRole', role);
-          localStorage.setItem('userName', name);
-          localStorage.setItem('userEmail', email);
-          
-          toast({
-            title: "Success!",
-            description: "Account created successfully.",
-          });
-          
-          navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
-        } catch (error: any) {
-          if (error.code === 'auth/email-already-in-use') {
-            toast({
-              title: "Email Already Registered",
-              description: "This email address is already registered. Please try logging in instead.",
-              variant: "destructive",
-            });
-          } else {
-            throw error;
-          }
-        }
+        // Save user data to Firestore with verification code for teachers
+        const userData = {
+          name,
+          email,
+          role,
+          verified: role === 'student',
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          verificationCode: role === 'teacher' ? 'Teacher1234' : null,
+        };
+        
+        await saveUserToFirestore(userCredential.user.uid, userData);
+        
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userName', name);
+        localStorage.setItem('userEmail', email);
+        
+        toast({
+          title: "Success!",
+          description: "Account created successfully.",
+        });
+        
+        navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const userData = await getUserFromFirestore(userCredential.user.uid);
         
-        if (userData) {
-          localStorage.setItem('userRole', userData.role);
-          localStorage.setItem('userName', userData.name);
-          localStorage.setItem('userEmail', userData.email);
-
-          if (userData.role === 'teacher' && !userData.verified) {
-            setShowVerificationDialog(true);
-            return;
-          }
-          
-          // Update last login
-          await saveUserToFirestore(userCredential.user.uid, {
-            ...userData,
-            lastLogin: new Date().toISOString(),
-          });
-
-          toast({
-            title: "Welcome back!",
-            description: "Successfully logged in.",
-          });
-          
-          navigate(userData.role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+        if (!userData) {
+          throw new Error("User data not found");
         }
+
+        localStorage.setItem('userRole', userData.role);
+        localStorage.setItem('userName', userData.name);
+        localStorage.setItem('userEmail', userData.email);
+
+        if (userData.role === 'teacher' && !userData.verified) {
+          setShowVerificationDialog(true);
+          return;
+        }
+        
+        // Update last login
+        await saveUserToFirestore(userCredential.user.uid, {
+          ...userData,
+          lastLogin: new Date().toISOString(),
+        });
+
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged in.",
+        });
+        
+        navigate(userData.role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
       }
     } catch (error: any) {
+      let errorMessage = error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email address is already registered. Please try logging in instead.";
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = "No account found with this email. Please sign up first.";
+      }
+      
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
       console.error('Authentication error:', error);
