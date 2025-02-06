@@ -115,7 +115,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           verified: role === 'student',
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
-          verificationCode: verificationCode,
+          verificationCode,
         };
         
         await saveUserToFirestore(userCredential.user.uid, userData);
