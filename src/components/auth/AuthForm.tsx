@@ -13,6 +13,12 @@ import {
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const [email, setEmail] = useState('');
@@ -20,6 +26,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const [name, setName] = useState('');
   const [role, setRole] = useState('student');
   const [verificationCode, setVerificationCode] = useState('');
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -35,16 +42,39 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
     return userSnap.exists() ? userSnap.data() : null;
   };
 
+  const handleVerificationSubmit = async () => {
+    if (verificationCode !== 'Teacher1234') {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter the correct teacher verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+      await saveUserToFirestore(user.uid, {
+        name: localStorage.getItem('userName'),
+        email: user.email,
+        role: 'teacher',
+        verified: true,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+      });
+
+      localStorage.setItem('userRole', 'teacher');
+      setShowVerificationDialog(false);
+      navigate('/teacher-dashboard');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (mode === 'signup') {
-        if (role === 'teacher' && verificationCode !== '123456') {
-          throw new Error('Invalid teacher verification code');
-        }
-
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           await updateProfile(userCredential.user, {
@@ -56,6 +86,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
             name,
             email,
             role,
+            verified: role === 'student',
             createdAt: new Date().toISOString(),
             lastLogin: new Date().toISOString(),
           };
@@ -85,29 +116,31 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
         }
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        // Get user data from Firestore
         const userData = await getUserFromFirestore(userCredential.user.uid);
         
         if (userData) {
           localStorage.setItem('userRole', userData.role);
           localStorage.setItem('userName', userData.name);
           localStorage.setItem('userEmail', userData.email);
+
+          if (userData.role === 'teacher' && !userData.verified) {
+            setShowVerificationDialog(true);
+            return;
+          }
           
           // Update last login
           await saveUserToFirestore(userCredential.user.uid, {
             ...userData,
             lastLogin: new Date().toISOString(),
           });
+
+          toast({
+            title: "Welcome back!",
+            description: "Successfully logged in.",
+          });
+          
+          navigate(userData.role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
         }
-        
-        toast({
-          title: "Welcome back!",
-          description: "Successfully logged in.",
-        });
-        
-        // Navigate based on role from Firestore
-        navigate(userData?.role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
       }
     } catch (error: any) {
       toast({
@@ -122,12 +155,16 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800 p-4">
-      <h1 className="text-4xl font-bold text-white mb-2">Class Connect</h1>
-      <p className="text-white/80 mb-8">Virtual Learning Platform</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#fdfcfb] to-[#e2d1c3] p-4">
+      <h1 className="text-4xl font-bold bg-gradient-to-r from-[#9b87f5] to-[#7E69AB] bg-clip-text text-transparent">
+        Class Connect
+      </h1>
+      <p className="text-[#2D3748] mt-2">
+        {mode === 'login' ? 'Welcome back!' : 'Create your account to get started'}
+      </p>
       
-      <Card className="w-full max-w-md p-8 bg-white/95 backdrop-blur-lg">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <Card className="w-full max-w-md p-8 bg-white/95 backdrop-blur-lg shadow-xl rounded-xl mt-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {mode === 'signup' && (
             <>
               <Input
@@ -135,32 +172,22 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
                 placeholder="Full Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full"
+                className="w-full border-[#D6BCFA] focus:ring-[#9b87f5]"
                 required
               />
-              <div className="space-y-2">
-                <Label>I am a:</Label>
-                <RadioGroup defaultValue="student" onValueChange={setRole}>
+              <div className="space-y-3">
+                <Label className="text-[#2D3748]">I am a:</Label>
+                <RadioGroup defaultValue="student" onValueChange={setRole} className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="student" id="student" />
-                    <Label htmlFor="student">Student</Label>
+                    <RadioGroupItem value="student" id="student" className="border-[#9b87f5]" />
+                    <Label htmlFor="student" className="text-[#2D3748]">Student</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="teacher" id="teacher" />
-                    <Label htmlFor="teacher">Teacher</Label>
+                    <RadioGroupItem value="teacher" id="teacher" className="border-[#9b87f5]" />
+                    <Label htmlFor="teacher" className="text-[#2D3748]">Teacher</Label>
                   </div>
                 </RadioGroup>
               </div>
-              {role === 'teacher' && (
-                <Input
-                  type="text"
-                  placeholder="Teacher Verification Code"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  className="w-full"
-                  required
-                />
-              )}
             </>
           )}
           <Input
@@ -168,7 +195,7 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full"
+            className="w-full border-[#D6BCFA] focus:ring-[#9b87f5]"
             required
           />
           <Input
@@ -176,36 +203,65 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full"
+            className="w-full border-[#D6BCFA] focus:ring-[#9b87f5]"
             required
           />
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-[#9b87f5] hover:bg-[#7E69AB] transition-colors duration-300"
             disabled={loading}
           >
             {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
           </Button>
         </form>
 
-        <div className="text-center text-sm mt-4">
+        <div className="mt-6 text-center">
           {mode === 'login' ? (
-            <p>
+            <p className="text-[#2D3748]">
               Don't have an account?{" "}
-              <Link to="/signup" className="text-blue-600 hover:underline">
+              <Link 
+                to="/signup" 
+                className="text-[#9b87f5] hover:text-[#7E69AB] transition-colors duration-300"
+              >
                 Sign up
               </Link>
             </p>
           ) : (
-            <p>
+            <p className="text-[#2D3748]">
               Already have an account?{" "}
-              <Link to="/login" className="text-blue-600 hover:underline">
+              <Link 
+                to="/login" 
+                className="text-[#9b87f5] hover:text-[#7E69AB] transition-colors duration-300"
+              >
                 Sign in
               </Link>
             </p>
           )}
         </div>
       </Card>
+
+      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Teacher Verification Required</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 p-4">
+            <Input
+              type="text"
+              placeholder="Enter verification code"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              className="w-full border-[#D6BCFA] focus:ring-[#9b87f5]"
+            />
+            <Button 
+              onClick={handleVerificationSubmit}
+              className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]"
+            >
+              Verify
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
