@@ -104,9 +104,6 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           displayName: name,
         });
 
-        // Generate verification code for teachers automatically
-        const verificationCode = role === 'teacher' ? generateVerificationCode() : null;
-
         // Save user data to Firestore
         const userData = {
           name,
@@ -115,7 +112,6 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           verified: role === 'student',
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
-          verificationCode,
         };
         
         await saveUserToFirestore(userCredential.user.uid, userData);
