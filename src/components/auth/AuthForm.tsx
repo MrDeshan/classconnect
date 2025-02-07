@@ -3,92 +3,22 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate, Link } from "react-router-dom";
-import { auth, db } from "@/lib/firebase";
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  updateProfile 
-} from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import TeacherVerificationDialog from "./TeacherVerificationDialog";
+import { handleSignup, handleLogin } from "@/lib/auth-utils";
 
 const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('student');
-  const [verificationCode, setVerificationCode] = useState('');
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const handleVerificationSubmit = async () => {
-    if (verificationCode !== 'Teacher1234') {
-      toast({
-        title: "Invalid Code",
-        description: "Please enter the correct teacher verification code.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error("No authenticated user found");
-      }
-
-      await saveUserToFirestore(user.uid, {
-        name: localStorage.getItem('userName'),
-        email: user.email,
-        role: 'teacher',
-        verified: true,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-      });
-
-      localStorage.setItem('userRole', 'teacher');
-      setShowVerificationDialog(false);
-      navigate('/teacher-dashboard');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const saveUserToFirestore = async (uid: string, userData: any) => {
-    try {
-      const userRef = doc(db, 'users', uid);
-      await setDoc(userRef, userData);
-    } catch (error) {
-      console.error("Error saving user to Firestore:", error);
-      throw error;
-    }
-  };
-
-  const getUserFromFirestore = async (uid: string) => {
-    try {
-      const userRef = doc(db, 'users', uid);
-      const userSnap = await getDoc(userRef);
-      return userSnap.exists() ? userSnap.data() : null;
-    } catch (error) {
-      console.error("Error getting user from Firestore:", error);
-      return null;
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,59 +26,23 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
 
     try {
       if (mode === 'signup') {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
-        if (userCredential.user) {
-          await updateProfile(userCredential.user, {
-            displayName: name,
-          });
-
-          const userData = {
-            name,
-            email,
-            role,
-            verified: role === 'student', // Teachers will verify during login
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-          };
-          
-          await saveUserToFirestore(userCredential.user.uid, userData);
-          
-          localStorage.setItem('userRole', role);
-          localStorage.setItem('userName', name);
-          localStorage.setItem('userEmail', email);
-          
+        const user = await handleSignup(email, password, name, role);
+        if (user) {
           toast({
             title: "Success!",
             description: role === 'teacher' 
               ? "Account created! Please login to verify your teacher account."
               : "Account created successfully.",
           });
-          
-          // Always navigate to login after signup for teachers
           navigate(role === 'teacher' ? '/login' : '/dashboard');
         }
       } else {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const userData = await getUserFromFirestore(userCredential.user.uid);
+        const { userData } = await handleLogin(email, password);
         
-        if (!userData) {
-          throw new Error("User data not found");
-        }
-
-        localStorage.setItem('userRole', userData.role);
-        localStorage.setItem('userName', userData.name);
-        localStorage.setItem('userEmail', userData.email);
-
         if (userData.role === 'teacher' && !userData.verified) {
           setShowVerificationDialog(true);
           return;
         }
-        
-        await saveUserToFirestore(userCredential.user.uid, {
-          ...userData,
-          lastLogin: new Date().toISOString(),
-        });
 
         toast({
           title: "Welcome back!",
@@ -262,28 +156,10 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
         </div>
       </Card>
 
-      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Teacher Verification Required</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 p-4">
-            <Input
-              type="text"
-              placeholder="Enter verification code"
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              className="w-full border-[#D6BCFA] focus:ring-[#9b87f5]"
-            />
-            <Button 
-              onClick={handleVerificationSubmit}
-              className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]"
-            >
-              Verify
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <TeacherVerificationDialog 
+        open={showVerificationDialog}
+        onOpenChange={setShowVerificationDialog}
+      />
     </div>
   );
 };
