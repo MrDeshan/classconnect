@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,12 +103,11 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
             displayName: name,
           });
 
-          // Save user data to Firestore
           const userData = {
             name,
             email,
             role,
-            verified: role === 'student',
+            verified: role === 'student', // Teachers will verify during login
             createdAt: new Date().toISOString(),
             lastLogin: new Date().toISOString(),
           };
@@ -120,10 +120,13 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           
           toast({
             title: "Success!",
-            description: "Account created successfully.",
+            description: role === 'teacher' 
+              ? "Account created! Please login to verify your teacher account."
+              : "Account created successfully.",
           });
           
-          navigate(role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+          // Always navigate to login after signup for teachers
+          navigate(role === 'teacher' ? '/login' : '/dashboard');
         }
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -142,7 +145,6 @@ const AuthForm = ({ mode }: { mode: 'login' | 'signup' }) => {
           return;
         }
         
-        // Update last login
         await saveUserToFirestore(userCredential.user.uid, {
           ...userData,
           lastLogin: new Date().toISOString(),
