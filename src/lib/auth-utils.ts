@@ -5,12 +5,18 @@ import {
   signInWithEmailAndPassword,
   updateProfile 
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 export const saveUserToFirestore = async (uid: string, userData: any) => {
   try {
     const userRef = doc(db, 'users', uid);
-    await setDoc(userRef, userData);
+    const userDataWithTimestamp = {
+      ...userData,
+      createdAt: serverTimestamp(),
+      lastLogin: serverTimestamp(),
+      uid: uid, // Add UID to user data
+    };
+    await setDoc(userRef, userDataWithTimestamp, { merge: true });
   } catch (error) {
     console.error("Error saving user to Firestore:", error);
     throw error;
@@ -45,9 +51,8 @@ export const handleSignup = async (
       name,
       email,
       role,
-      verified: role === 'student',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
+      verified: role === 'student', // Students are automatically verified
+      uid: userCredential.user.uid,
     };
     
     await saveUserToFirestore(userCredential.user.uid, userData);
@@ -72,6 +77,11 @@ export const handleLogin = async (email: string, password: string) => {
   localStorage.setItem('userRole', userData.role);
   localStorage.setItem('userName', userData.name);
   localStorage.setItem('userEmail', userData.email);
+
+  // Update last login
+  await saveUserToFirestore(userCredential.user.uid, {
+    lastLogin: serverTimestamp(),
+  });
 
   return { user: userCredential.user, userData };
 };
