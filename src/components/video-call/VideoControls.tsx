@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,9 +10,11 @@ import {
     BookOpen,
     Hand,
     Users,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Settings
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import ClassInvitation from "./ClassInvitation";
 
 // Basic Modal Component
 const Modal = ({ isOpen, onClose, children }) => {
@@ -110,14 +113,6 @@ const VideoControls = ({
     const [allowSelfUnmute, setAllowSelfUnmute] = useState(true);
     const [enableWaitingRoom, setEnableWaitingRoom] = useState(false);
 
-    // Dynamic Class ID and Passcode Generation
-    const generateClassId = () => Math.random().toString(36).substring(2, 8);
-    const generatePasscode = () => Math.random().toString(36).substring(2, 8);
-
-    const classId = generateClassId();
-    const passcode = generatePasscode();
-    const invitationLink = `https://yourapp.com/join/${classId}/${passcode}`;
-
     const handleApplySettings = () => {
         console.log({ muteUponEntry, allowSelfUnmute, enableWaitingRoom });
         setSettingsOpen(false);
@@ -160,9 +155,11 @@ const VideoControls = ({
                             <BookOpen className="w-6 h-6" />
                         </Button>
                         <Button onClick={() => setInviteOpen(true)}><LinkIcon className="w-6 h-6" /> Invite</Button>
-                        <Button onClick={() => setJoinOpen(true)}>Join</Button>
-                        <Button onClick={() => setSettingsOpen(true)}>Settings</Button>
+                        <Button onClick={() => setSettingsOpen(true)}><Settings className="w-6 h-6" /></Button>
                     </>
+                )}
+                {!isTeacher && (
+                    <Button onClick={() => setJoinOpen(true)}>Join Class</Button>
                 )}
                 <Button variant="destructive" className="rounded-full px-6 flex items-center gap-2" onClick={onEndCall}>
                     <PhoneOff className="w-4 h-4" />
@@ -190,21 +187,9 @@ const VideoControls = ({
                 </div>
             </Modal>
 
-            {/* Invitation Modal */}
+            {/* Invitation Modal - replaced with new component */}
             <Modal isOpen={inviteOpen} onClose={() => setInviteOpen(false)}>
-                <div className="p-4">
-                    <h2 className="text-lg font-bold">Invite Students</h2>
-                    <p>Share this link with your students:</p>
-                    <input
-                        type="text"
-                        value={invitationLink}
-                        readOnly
-                        className="w-full p-2 border border-gray-300 rounded mb-2"
-                    />
-                    <p>Or share the following details:</p>
-                    <p>Class ID: {classId}</p>
-                    <p>Passcode: {passcode}</p>
-                </div>
+                <ClassInvitation onClose={() => setInviteOpen(false)} />
             </Modal>
 
             {/* Student Join Modal */}

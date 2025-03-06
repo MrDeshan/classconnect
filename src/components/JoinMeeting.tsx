@@ -1,22 +1,49 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const JoinMeeting = () => {
+  const [searchParams] = useSearchParams();
   const [meetingId, setMeetingId] = useState("");
+  const [passcode, setPasscode] = useState("");
   const [username, setUsername] = useState("");
   const [rememberName, setRememberName] = useState(false);
   const [noAudio, setNoAudio] = useState(false);
   const [noVideo, setNoVideo] = useState(false);
   const navigate = useNavigate();
 
+  // Check for invitation parameters in URL
+  useEffect(() => {
+    const id = searchParams.get("id");
+    const pass = searchParams.get("passcode");
+    
+    if (id) setMeetingId(id);
+    if (pass) setPasscode(pass);
+    
+    // Check if we have a remembered name
+    const savedName = localStorage.getItem("username");
+    if (savedName) {
+      setUsername(savedName);
+      setRememberName(true);
+    }
+  }, [searchParams]);
+
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (meetingId && username) {
-      navigate(`/class?id=${meetingId}&name=${username}&audio=${!noAudio}&video=${!noVideo}`);
+      // Save username if remember option is checked
+      if (rememberName) {
+        localStorage.setItem("username", username);
+      } else {
+        localStorage.removeItem("username");
+      }
+      
+      // Navigate to class with all parameters
+      navigate(`/class?id=${meetingId}&name=${username}&audio=${!noAudio}&video=${!noVideo}${passcode ? `&passcode=${passcode}` : ''}`);
     }
   };
 
@@ -34,6 +61,19 @@ const JoinMeeting = () => {
               required
             />
           </div>
+          
+          {/* Passcode input - show if not already provided in URL */}
+          {!searchParams.get("passcode") && (
+            <div>
+              <Input
+                placeholder="Passcode (if required)"
+                type="password"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+              />
+            </div>
+          )}
+          
           <div>
             <Input
               placeholder="Your Name"

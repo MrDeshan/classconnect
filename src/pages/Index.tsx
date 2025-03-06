@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Video, Users, BookOpen, Calendar, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -5,6 +6,7 @@ import FeatureCard from "@/components/features/FeatureCard";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useState } from "react";
+import { toast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -37,11 +39,15 @@ const Index = () => {
   ];
 
   const handleJoinClass = () => {
-    if (meetingId && passcode) {
-      // Navigate to the class page with meeting ID and passcode
-      navigate(`/class/${meetingId}/${passcode}`);
+    if (meetingId) {
+      // Navigate to the join page with meeting ID and passcode if provided
+      navigate(`/join?id=${meetingId}${passcode ? `&passcode=${passcode}` : ''}`);
     } else {
-      alert("Please enter both Meeting ID and Passcode.");
+      toast({
+        title: "Error",
+        description: "Please enter a Meeting ID.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -77,7 +83,7 @@ const Index = () => {
               />
               <input
                   type="password"
-                  placeholder="Passcode"
+                  placeholder="Passcode (optional)"
                   value={passcode}
                   onChange={(e) => setPasscode(e.target.value)}
                   className="border border-gray-300 rounded p-2 mr-2 mb-2 sm:mb-0"
