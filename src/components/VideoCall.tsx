@@ -48,6 +48,10 @@ const VideoCall = () => {
     return searchParams.get('name') || 'Anonymous User';
   });
 
+  // Add refs for remote videos
+  const teacherVideoRef = useRef<HTMLVideoElement>(null);
+  const studentVideoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)];
+  
   useEffect(() => {
     const initializeMedia = async () => {
       try {
@@ -70,17 +74,23 @@ const VideoCall = () => {
           localVideoRef.current.srcObject = stream;
         }
         
+        // Create mock participants with proper video references
         const initialParticipants: Participant[] = [];
         
         if (!isTeacher) {
+          // For student view, add the teacher with video reference
           initialParticipants.push({
             id: 1,
             name: "Teacher",
             role: "Teacher",
             handRaised: false,
+            videoRef: teacherVideoRef,
+            // Mock stream for demonstration - in real app this would come from WebRTC
+            stream: new MediaStream()
           });
         }
         
+        // Add current user (you)
         initialParticipants.push({
           id: isTeacher ? 1 : 2,
           name: `${username} ${isTeacher ? '(Teacher)' : '(You)'}`,
@@ -89,6 +99,7 @@ const VideoCall = () => {
           stream: stream
         });
         
+        // Add mock students with video references if needed
         if (initialParticipants.length < 4) {
           const mockCount = 4 - initialParticipants.length;
           for (let i = 0; i < mockCount; i++) {
@@ -97,11 +108,41 @@ const VideoCall = () => {
               name: `Student ${i + 1}`,
               role: "Student",
               handRaised: false,
+              videoRef: studentVideoRefs[i],
+              // Mock stream for demonstration - in real app this would come from WebRTC
+              stream: new MediaStream()
             });
           }
         }
         
         setParticipants(initialParticipants);
+        
+        // Simulate receiving a teacher stream after 1 second (just for demo purposes)
+        // In a real application, this would happen through WebRTC signaling
+        if (!isTeacher) {
+          setTimeout(() => {
+            // Create a mock remote stream for the teacher
+            navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: true
+            }).then(teacherStream => {
+              // Set the teacher's stream to the teacher video ref
+              if (teacherVideoRef.current) {
+                teacherVideoRef.current.srcObject = teacherStream;
+              }
+              
+              // Update the participants list with the new stream
+              setParticipants(prevParticipants => {
+                return prevParticipants.map(p => {
+                  if (p.role === "Teacher") {
+                    return { ...p, stream: teacherStream };
+                  }
+                  return p;
+                });
+              });
+            });
+          }, 1000);
+        }
         
         toast({
           title: "Connected to class",
@@ -343,12 +384,19 @@ const VideoCall = () => {
             {participants.filter(p => 
               (isTeacher && p.role === "Student") || 
               (!isTeacher && p.role === "Teacher")
-            ).map((participant) => (
+            ).map((participant, index) => (
               <Card key={participant.id} className="glass-card aspect-video relative overflow-hidden">
                 <div className="absolute inset-0 bg-gray-800/10 flex items-center justify-center">
-                  {participant.stream ? (
+                  {participant.role === "Teacher" ? (
                     <video 
-                      ref={participant.videoRef} 
+                      ref={teacherVideoRef}
+                      autoPlay 
+                      playsInline 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : participant.role === "Student" && index < studentVideoRefs.length ? (
+                    <video 
+                      ref={studentVideoRefs[index]} 
                       autoPlay 
                       playsInline 
                       className="w-full h-full object-cover"
