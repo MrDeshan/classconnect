@@ -11,6 +11,15 @@ import ParticipantsList from "./video-call/ParticipantsList";
 import SettingsPanel from "./video-call/SettingsPanel";
 import { useSearchParams } from 'react-router-dom';
 
+interface Participant {
+  id: number;
+  name: string;
+  role: string;
+  handRaised: boolean;
+  videoRef?: React.RefObject<HTMLVideoElement>;
+  stream?: MediaStream | null;
+}
+
 const VideoCall = () => {
   const [searchParams] = useSearchParams();
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -29,30 +38,77 @@ const VideoCall = () => {
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const [participants] = useState([
-    { id: 1, name: "John Smith", role: "Teacher", handRaised: false },
-    { id: 2, name: "Alice Johnson", role: "Student", handRaised: false },
-    { id: 3, name: "Bob Wilson", role: "Student", handRaised: false },
-    { id: 4, name: "Emma Davis", role: "Student", handRaised: false },
-  ]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const { toast } = useToast();
 
   const [isTeacher] = useState(() => localStorage.getItem('userRole') === 'teacher');
   const [lockedParticipants, setLockedParticipants] = useState<number[]>([]);
   const [mutedParticipants, setMutedParticipants] = useState<number[]>([]);
+  const [username] = useState(() => {
+    return searchParams.get('name') || 'Anonymous User';
+  });
 
-  // Initialize media devices on component mount
   useEffect(() => {
     const initializeMedia = async () => {
       try {
+        const videoParam = searchParams.get('video');
+        const audioParam = searchParams.get('audio');
+        
+        const noVideo = videoParam === 'false';
+        const noAudio = audioParam === 'false';
+        
+        setIsVideoOff(noVideo);
+        setIsMuted(noAudio);
+        
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: !isVideoOff,
-          audio: !isMuted
+          video: !noVideo,
+          audio: !noAudio
         });
+        
         setMediaStream(stream);
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
+        
+        const initialParticipants: Participant[] = [];
+        
+        if (!isTeacher) {
+          initialParticipants.push({
+            id: 1,
+            name: "Teacher",
+            role: "Teacher",
+            handRaised: false,
+          });
+        }
+        
+        initialParticipants.push({
+          id: isTeacher ? 1 : 2,
+          name: `${username} ${isTeacher ? '(Teacher)' : '(You)'}`,
+          role: isTeacher ? "Teacher" : "Student",
+          handRaised: false,
+          stream: stream
+        });
+        
+        if (initialParticipants.length < 4) {
+          const mockCount = 4 - initialParticipants.length;
+          for (let i = 0; i < mockCount; i++) {
+            initialParticipants.push({
+              id: initialParticipants.length + 1,
+              name: `Student ${i + 1}`,
+              role: "Student",
+              handRaised: false,
+            });
+          }
+        }
+        
+        setParticipants(initialParticipants);
+        
+        toast({
+          title: "Connected to class",
+          description: `You've joined as ${isTeacher ? 'Teacher' : 'Student'}`,
+          duration: 3000,
+        });
+        
       } catch (error) {
         console.error('Error accessing media devices:', error);
         toast({
@@ -65,7 +121,6 @@ const VideoCall = () => {
 
     initializeMedia();
 
-    // Cleanup function
     return () => {
       if (mediaStream) {
         mediaStream.getTracks().forEach(track => track.stop());
@@ -86,7 +141,6 @@ const VideoCall = () => {
         }
         setIsScreenSharing(true);
         
-        // Listen for when user stops screen sharing through browser controls
         stream.getVideoTracks()[0].onended = () => {
           setIsScreenSharing(false);
           if (localVideoRef.current && mediaStream) {
@@ -223,7 +277,6 @@ const VideoCall = () => {
       handleEndCall();
       return;
     }
-    // End meeting for all participants
     toast({
       title: "Meeting ended",
       description: "You have ended the meeting for all participants",
@@ -235,7 +288,6 @@ const VideoCall = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
       <div className="max-w-[1800px] mx-auto p-4">
-        {/* Header Section */}
         <div className="flex justify-between items-center mb-6 bg-white/80 backdrop-blur-lg rounded-lg p-4">
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="px-4 py-2">
@@ -272,9 +324,7 @@ const VideoCall = () => {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
-          {/* Main Video Section */}
           <Card className="glass-card lg:col-span-2 xl:col-span-3 aspect-video relative overflow-hidden">
             <video
               ref={localVideoRef}
@@ -285,16 +335,27 @@ const VideoCall = () => {
             />
             <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
               <Video className="w-4 h-4" />
-              You (Host)
+              {isTeacher ? "You (Teacher)" : "You"}
             </div>
           </Card>
 
-          {/* Participants Grid */}
           <div className="space-y-4">
-            {participants.slice(1).map((participant) => (
+            {participants.filter(p => 
+              (isTeacher && p.role === "Student") || 
+              (!isTeacher && p.role === "Teacher")
+            ).map((participant) => (
               <Card key={participant.id} className="glass-card aspect-video relative overflow-hidden">
                 <div className="absolute inset-0 bg-gray-800/10 flex items-center justify-center">
-                  <Users className="w-12 h-12 text-gray-400" />
+                  {participant.stream ? (
+                    <video 
+                      ref={participant.videoRef} 
+                      autoPlay 
+                      playsInline 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Users className="w-12 h-12 text-gray-400" />
+                  )}
                 </div>
                 <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
                   {participant.name}
@@ -307,9 +368,7 @@ const VideoCall = () => {
           </div>
         </div>
 
-        {/* Interactive Features */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {/* Only show certain features to teachers */}
           {(isTeacher || !isTeacher) && (
             <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsChatOpen(!isChatOpen)}>
               <h3 className="font-semibold mb-2 flex items-center gap-2">
@@ -349,7 +408,6 @@ const VideoCall = () => {
           )}
         </div>
 
-        {/* Panels */}
         {isChatOpen && (
           <ChatPanel
             messages={messages}
@@ -390,7 +448,6 @@ const VideoCall = () => {
           />
         )}
 
-        {/* Video Controls */}
         <VideoControls
           isMuted={isMuted}
           isVideoOff={isVideoOff}
