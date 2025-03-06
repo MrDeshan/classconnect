@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
@@ -49,10 +48,11 @@ const VideoCall = () => {
     return searchParams.get('name') || 'Anonymous User';
   });
 
-  // Add refs for remote videos
   const teacherVideoRef = useRef<HTMLVideoElement>(null);
   const studentVideoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)];
-  
+  const mainPresenterRef = useRef<HTMLVideoElement>(null);
+  const [activeSpeakerId, setActiveSpeakerId] = useState<number | null>(null);
+
   useEffect(() => {
     const initializeMedia = async () => {
       try {
@@ -71,63 +71,106 @@ const VideoCall = () => {
         });
         
         setMediaStream(stream);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
         
-        // Create mock participants with proper video references
         const initialParticipants: Participant[] = [];
         
-        if (!isTeacher) {
-          // For student view, add the teacher with video reference
+        if (isTeacher) {
+          initialParticipants.push({
+            id: 1,
+            name: `${username} (Teacher Host)`,
+            role: "Teacher",
+            handRaised: false,
+            videoRef: teacherVideoRef,
+            stream: stream
+          });
+          
+          setActiveSpeakerId(1);
+          
+          if (teacherVideoRef.current) {
+            teacherVideoRef.current.srcObject = stream;
+          }
+          
+          if (mainPresenterRef.current) {
+            mainPresenterRef.current.srcObject = stream;
+          }
+          
+          for (let i = 0; i < 3; i++) {
+            initialParticipants.push({
+              id: i + 2,
+              name: `Student ${i + 1}`,
+              role: "Student",
+              handRaised: false,
+              videoRef: studentVideoRefs[i],
+              stream: null
+            });
+          }
+          
+          setTimeout(async () => {
+            try {
+              const studentStream = await navigator.mediaDevices.getUserMedia({
+                video: true, audio: true
+              });
+              
+              if (studentVideoRefs[0].current) {
+                studentVideoRefs[0].current.srcObject = studentStream;
+              }
+              
+              setParticipants(prev => {
+                return prev.map((p, index) => {
+                  if (p.role === "Student" && index === 1) {
+                    return { ...p, stream: studentStream };
+                  }
+                  return p;
+                });
+              });
+              
+              toast({
+                title: "Student joined",
+                description: "Student 1 has joined the class",
+                duration: 2000,
+              });
+            } catch (error) {
+              console.error("Error creating student stream:", error);
+            }
+          }, 1500);
+        } else {
           initialParticipants.push({
             id: 1,
             name: "Teacher Host",
             role: "Teacher",
             handRaised: false,
             videoRef: teacherVideoRef,
-            // Mock stream for demonstration - in real app this would come from WebRTC
-            stream: null // We'll set this later with the teacher stream
+            stream: null
           });
-        }
-        
-        // Add current user (you)
-        initialParticipants.push({
-          id: isTeacher ? 1 : 2,
-          name: `${username} ${isTeacher ? '(Teacher Host)' : '(You)'}`,
-          role: isTeacher ? "Teacher" : "Student",
-          handRaised: false,
-          stream: stream
-        });
-        
-        // Add mock students with video references if needed
-        if (initialParticipants.length < 4) {
-          const mockCount = 4 - initialParticipants.length;
-          for (let i = 0; i < mockCount; i++) {
-            // Only add mock students for teacher view
-            if (isTeacher || initialParticipants.length < 3) {
-              initialParticipants.push({
-                id: initialParticipants.length + 1,
-                name: `Student ${i + 1}`,
-                role: "Student",
-                handRaised: false,
-                videoRef: studentVideoRefs[i],
-                // Mock stream for demonstration - in real app this would come from WebRTC
-                stream: i === 0 && isTeacher ? new MediaStream() : null
-              });
-            }
+          
+          setActiveSpeakerId(1);
+          
+          initialParticipants.push({
+            id: 2,
+            name: `${username} (You)`,
+            role: "Student",
+            handRaised: false,
+            videoRef: localVideoRef,
+            stream: stream
+          });
+          
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
           }
-        }
-        
-        setParticipants(initialParticipants);
-        
-        // Simulate receiving a teacher stream after 1 second (just for demo purposes)
-        // In a real application, this would happen through WebRTC signaling
-        if (!isTeacher) {
+          
+          for (let i = 0; i < 2; i++) {
+            initialParticipants.push({
+              id: i + 3,
+              name: `Student ${i + 2}`,
+              role: "Student",
+              handRaised: false,
+              videoRef: studentVideoRefs[i],
+              stream: null
+            });
+          }
+          
           setTimeout(async () => {
             try {
-              // Create a distinct stream for the teacher with different settings
-              // to make it visually different from the student stream
               const teacherStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                   width: { ideal: 1280 },
@@ -136,14 +179,16 @@ const VideoCall = () => {
                 audio: true
               });
               
-              // Set the teacher's stream to the teacher video ref
               if (teacherVideoRef.current) {
                 teacherVideoRef.current.srcObject = teacherStream;
               }
               
-              // Update the participants list with the new stream
-              setParticipants(prevParticipants => {
-                return prevParticipants.map(p => {
+              if (mainPresenterRef.current) {
+                mainPresenterRef.current.srcObject = teacherStream;
+              }
+              
+              setParticipants(prev => {
+                return prev.map(p => {
                   if (p.role === "Teacher") {
                     return { ...p, stream: teacherStream };
                   }
@@ -151,42 +196,18 @@ const VideoCall = () => {
                 });
               });
               
-              // Add visual indication that this is a teacher stream
-              console.log("Teacher stream connected");
+              toast({
+                title: "Teacher joined",
+                description: "The teacher has joined the class",
+                duration: 2000,
+              });
             } catch (error) {
               console.error("Error creating teacher stream:", error);
             }
           }, 1000);
-        } else {
-          // If user is teacher, simulate receiving student streams
-          setTimeout(async () => {
-            try {
-              // Create a distinct stream for a student
-              const studentStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-              });
-              
-              // Update one of the student participants with this stream
-              setParticipants(prevParticipants => {
-                return prevParticipants.map((p, index) => {
-                  if (p.role === "Student" && index === 0) {
-                    // Set student stream to first student video ref
-                    if (studentVideoRefs[0].current) {
-                      studentVideoRefs[0].current.srcObject = studentStream;
-                    }
-                    return { ...p, stream: studentStream };
-                  }
-                  return p;
-                });
-              });
-              
-              console.log("Student stream connected");
-            } catch (error) {
-              console.error("Error creating student stream:", error);
-            }
-          }, 1500);
         }
+        
+        setParticipants(initialParticipants);
         
         toast({
           title: "Connected to class",
@@ -221,13 +242,25 @@ const VideoCall = () => {
       if (!isScreenSharing) {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         setScreenStream(stream);
+        
+        if (mainPresenterRef.current) {
+          mainPresenterRef.current.srcObject = stream;
+        }
+        
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
+        
         setIsScreenSharing(true);
         
         stream.getVideoTracks()[0].onended = () => {
           setIsScreenSharing(false);
+          
+          const activeParticipant = participants.find(p => p.id === activeSpeakerId);
+          if (activeParticipant?.stream && mainPresenterRef.current) {
+            mainPresenterRef.current.srcObject = activeParticipant.stream;
+          }
+          
           if (localVideoRef.current && mediaStream) {
             localVideoRef.current.srcObject = mediaStream;
           }
@@ -236,9 +269,16 @@ const VideoCall = () => {
         if (screenStream) {
           screenStream.getTracks().forEach(track => track.stop());
         }
+        
+        const activeParticipant = participants.find(p => p.id === activeSpeakerId);
+        if (activeParticipant?.stream && mainPresenterRef.current) {
+          mainPresenterRef.current.srcObject = activeParticipant.stream;
+        }
+        
         if (localVideoRef.current && mediaStream) {
           localVideoRef.current.srcObject = mediaStream;
         }
+        
         setIsScreenSharing(false);
       }
       
@@ -258,7 +298,7 @@ const VideoCall = () => {
 
   const toggleRecording = () => {
     if (!isRecording) {
-      const stream = localVideoRef.current?.srcObject as MediaStream;
+      const stream = mainPresenterRef.current?.srcObject as MediaStream;
       if (!stream) return;
 
       const mediaRecorder = new MediaRecorder(stream);
@@ -370,6 +410,20 @@ const VideoCall = () => {
     setTimeout(() => window.location.href = "/", 2000);
   };
 
+  const setMainPresenter = (participantId: number) => {
+    const participant = participants.find(p => p.id === participantId);
+    if (participant?.stream && mainPresenterRef.current) {
+      mainPresenterRef.current.srcObject = participant.stream;
+      setActiveSpeakerId(participantId);
+      
+      toast({
+        title: "Main presenter changed",
+        description: `${participant.name} is now the main presenter`,
+        duration: 2000,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
       <div className="max-w-[1800px] mx-auto p-4">
@@ -410,83 +464,74 @@ const VideoCall = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
-          {/* Main video display - shows teacher if student view, shows local video if teacher */}
           <Card className="glass-card lg:col-span-2 xl:col-span-3 aspect-video relative overflow-hidden">
-            {!isTeacher ? (
-              <>
-                {/* Student viewing teacher */}
-                <video
-                  ref={teacherVideoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  Teacher Host
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Teacher viewing own video */}
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  You (Teacher Host)
-                </div>
-              </>
-            )}
+            <video
+              ref={mainPresenterRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
+              <Video className="w-4 h-4" />
+              {isScreenSharing ? "Screen Share" : activeSpeakerId === 1 ? "Teacher Host" : `${participants.find(p => p.id === activeSpeakerId)?.name || "Active Speaker"}`}
+            </div>
           </Card>
 
           <div className="space-y-4">
-            {/* For teacher: show students */}
-            {/* For students: show self and other students */}
-            {isTeacher ? (
-              // Teacher view - show students
-              participants
-                .filter(p => p.role === "Student")
-                .map((participant, index) => (
-                  <Card key={participant.id} className="glass-card aspect-video relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gray-800/10 flex items-center justify-center">
-                      {index < studentVideoRefs.length ? (
-                        <video 
-                          ref={studentVideoRefs[index]} 
-                          autoPlay 
-                          playsInline 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
+            <Card 
+              className="glass-card aspect-video relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+              onClick={() => setMainPresenter(1)}
+            >
+              <video 
+                ref={teacherVideoRef}
+                autoPlay 
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
+                {isTeacher ? "You (Teacher Host)" : "Teacher Host"}
+                {activeSpeakerId === 1 && <Badge variant="secondary" className="ml-1 text-xs px-2 py-0">Active</Badge>}
+              </div>
+            </Card>
+            
+            {participants
+              .filter(p => p.role === "Student")
+              .map((participant, index) => (
+                <Card 
+                  key={participant.id}
+                  className="glass-card aspect-video relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                  onClick={() => setMainPresenter(participant.id)}
+                >
+                  {participant.id === 2 && !isTeacher ? (
+                    <video 
+                      ref={localVideoRef}
+                      autoPlay 
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    index < studentVideoRefs.length ? (
+                      <video 
+                        ref={studentVideoRefs[index]}
+                        autoPlay 
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gray-800/10 flex items-center justify-center">
                         <Users className="w-12 h-12 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
-                      {participant.name}
-                    </div>
-                  </Card>
-                ))
-            ) : (
-              // Student view - show self video
-              <Card className="glass-card aspect-video relative overflow-hidden">
-                <div className="absolute inset-0 bg-gray-800/10 flex items-center justify-center">
-                  <video 
-                    ref={localVideoRef}
-                    autoPlay 
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
-                  You (Student)
-                </div>
-              </Card>
-            )}
+                      </div>
+                    )
+                  )}
+                  
+                  <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-2">
+                    {!isTeacher && participant.id === 2 ? "You (Student)" : participant.name}
+                    {activeSpeakerId === participant.id && <Badge variant="secondary" className="ml-1 text-xs px-2 py-0">Active</Badge>}
+                  </div>
+                </Card>
+              ))
+            }
           </div>
         </div>
 
@@ -520,7 +565,7 @@ const VideoCall = () => {
           </Card>
           
           {isTeacher && (
-            <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => setIsRecording(!isRecording)}>
+            <Card className="glass-card p-4 hover:bg-white/90 transition-colors cursor-pointer" onClick={() => toggleRecording()}>
               <h3 className="font-semibold mb-2 flex items-center gap-2">
                 <Video className="w-5 h-5 text-primary" />
                 Recording
