@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Call</title>
+</head>
+<body>
+    <h2>Video Call</h2>
+    <div>
+        <h3>Local Video</h3>
+        <video id="localVideo" autoplay muted></video>
+    </div>
+    <div>
+        <h3>Remote Video</h3>
+        <video id="remoteVideo" autoplay></video>
+    </div>
+    <div>
+        <button id="toggleMuteButton">Mute Mic</button>
+        <button id="toggleCameraButton">Turn Camera Off</button>
+        <button id="toggleScreenShareButton">Share Screen</button>
+        <button id="logoutButton">Logout</button>
+    </div>
+
+    <script>
+        // Authentication check
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // Optional: Logout functionality
+        const logoutButton = document.getElementById('logoutButton');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', () => {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            });
+        }
+
+        // Placeholder for WebRTC logic (to be added in a later step)
+        // For now, just log that the user is authenticated
+        console.log('User authenticated. Token:', token);
+
+    </script>
+    <script src="webrtc.js" defer></script>
+</body>
+</html>
