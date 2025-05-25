@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form>
+        <div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit">Login</button>
+    </form>
+    <p id="message"></p>
+
+    <script>
+        const form = document.querySelector('form');
+        const messageElement = document.getElementById('message');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            messageElement.textContent = ''; // Clear previous messages
+
+            const username = form.username.value;
+            const password = form.password.value;
+
+            try {
+                const response = await fetch('http://localhost:3000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token); // Store the token
+                    messageElement.textContent = 'Login successful! Redirecting to call page...';
+                    messageElement.style.color = 'green';
+                    setTimeout(() => {
+                        window.location.href = 'call.html';
+                    }, 1000);
+                } else {
+                    messageElement.textContent = data.message || 'Login failed.';
+                    messageElement.style.color = 'red';
+                }
+            } catch (error) {
+                console.error('Error during login:', error);
+                messageElement.textContent = 'An error occurred. Please try again.';
+                messageElement.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+</html>
